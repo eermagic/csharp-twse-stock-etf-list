@@ -1,0 +1,128 @@
+﻿<br />
+<main id="Page">
+
+    <div class="row">
+        <div class="col-md-3">
+            市場別
+            <select class="form-control" v-model="form.Q_MARKET_TYPE">
+                <option value="TWSE">證交所</option>
+                <option value="OTC">櫃買中心</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            資產別
+            <select class="form-control" v-model="form.Q_ASSETS_TYPE">
+                <option value="STOCK">股票</option>
+                <option value="ETF">ETF</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <br />
+            <button type="button" class="btn btn-default" v-on:click="GetList()">查詢</button>
+        </div>
+    </div>
+
+
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            {{gridList.CName}}清單
+            <div style="float:right;">
+                總筆數: {{gridList.RowCnt}}
+            </div>
+        </div>
+        <div class="panel-body">
+            <table class="table">
+                <tr>
+                    <th>代碼</th>
+                    <th>名稱</th>
+                    <th>市場別</th>
+                    <th>資產別</th>
+                    <th>上市日</th>
+                    <th>產業別</th>
+                </tr>
+                <tr v-for="(item, index) in gridList.datas">
+                    <td>{{item.SYMBOL_CODE}}</td>
+                    <td>{{item.SYMBOL_NAME}}</td>
+                    <td>{{item.MARKET_TYPE}}</td>
+                    <td>{{item.ASSETS_TYPE}}</td>
+                    <td>{{item.PUBLIC_DATE}}</td>
+                    <td>{{item.INDUSTRY}}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+</main>
+@section scripts{
+    <script>
+    var Page = new Vue({
+        el: '#Page'
+        , data: function () {
+            var data = {
+                form: {
+                    Q_MARKET_TYPE: ""
+                    , Q_ASSETS_TYPE:""
+                }
+                , gridList: {
+                    datas: []
+                    , RowCnt: 0
+                    , CName:''
+                }
+            };
+            return data;
+        }
+        , created: function () {
+            var self = this;
+            // 預設資料
+            self.form.Q_MARKET_TYPE = "TWSE";
+            self.form.Q_ASSETS_TYPE = "STOCK";
+        }
+        , methods: {
+            // 查詢
+            GetList: function () {
+                var self = this;
+
+                // 組合表單資料
+                var postData = {};
+                postData['Q_MARKET_TYPE'] = self.form.Q_MARKET_TYPE;
+                postData['Q_ASSETS_TYPE'] = self.form.Q_ASSETS_TYPE;
+
+                $.blockUI({ message: '處理中...' });
+                $.ajax({
+                    url:'@Url.Action("GetList", "Home")',
+                    method:'POST',
+                    dataType:'json',
+                    data: { inModel: postData},
+                    success: function (datas) {
+                        if (datas.ErrMsg) {
+                            alert(datas.ErrMsg);
+                            return;
+                        }
+                        self.gridList.datas = [];
+
+                        // 顯示列表
+                        for (var i in datas.gridList) {
+                            var data = {};
+                            for (var key in datas.gridList[i]) {
+                                data[key] = datas.gridList[i][key];
+                            }
+                            self.gridList.datas.push(data);
+                        }
+
+                        // 資料筆數
+                        self.gridList.RowCnt = datas.RowCnt;
+
+                        // 名稱
+                        self.gridList.CName = datas.CName;
+
+                        // 解除畫面鎖定
+                        $.unblockUI();
+                    },
+                    error: function (err) {
+                        alert(err.responseText);
+                    },
+                });
+            }
+        }
+    })
+    </script>
+}
